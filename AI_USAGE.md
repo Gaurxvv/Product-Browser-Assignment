@@ -29,8 +29,5 @@ I then explicitly instructed the AI to pivot the architecture:
 
 **Why this matters:** This demonstrates that while AI is incredibly fast at writing code, it can easily miss nuanced business requirements. By treating the AI as a junior pair-programmer, I provided the critical architectural direction and logic validation that ultimately solved the core requirement flawlessly.
 
-## 4. Deployment & DevOps
-Finally, I used the AI to quickly generate the `vercel.json` rewrite rules and `.gitignore` file necessary to deploy an Express API natively onto Vercel's Serverless environment.
-
 ---
 **Conclusion:** AI was utilized heavily as a rapid-prototyping and boilerplate-generation tool. However, the exact architectural decisions—specifically the choice to use Keyset Pagination and the critical realization to index on `updatedAt` instead of `createdAt`—were driven and validated entirely by human oversight.
