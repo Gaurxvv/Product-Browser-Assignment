@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Browser</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
+    .product-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+  </style>
+</head>
+<body class="text-gray-800 bg-gray-50">
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+      <h1 class="text-3xl font-bold text-gray-900">Product Browser</h1>
+      <div class="flex gap-4 items-center">
+        <label for="category" class="font-medium text-gray-700">Filter by Category:</label>
+        <select id="category" class="border border-gray-300 rounded-md shadow-sm p-2 bg-white focus:ring-blue-500 focus:border-blue-500">
+          <option value="">All Categories</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Clothing">Clothing</option>
+          <option value="Books">Books</option>
+          <option value="Home">Home</option>
+          <option value="Toys">Toys</option>
+          <option value="Sports">Sports</option>
+          <option value="Beauty">Beauty</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="bg-white rounded-xl shadow overflow-hidden border border-gray-200">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Product Name</th>
+              <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+              <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Price</th>
+              <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Updated</th>
+            </tr>
+          </thead>
+          <tbody id="products-table-body" class="bg-white divide-y divide-gray-200">
+            <!-- Table rows will be injected here -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination Controls -->
+      <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+        <div class="text-sm text-gray-700" id="page-info">
+          Loading page...
+        </div>
+        <div class="flex space-x-2">
+          <button id="btn-prev" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md shadow-sm text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+            Previous
+          </button>
+          <button id="btn-next" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md shadow-sm text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Cursor stack for tracking previous pages
+    let cursorStack = []; 
+    let currentCursor = null; 
+    let currentCategory = '';
+    let isLoading = false;
+    let pageCount = 1;
+
+    const tableBody = document.getElementById('products-table-body');
+    const btnNext = document.getElementById('btn-next');
+    const btnPrev = document.getElementById('btn-prev');
+    const categorySelect = document.getElementById('category');
+    const pageInfo = document.getElementById('page-info');
+
+    async function fetchProducts(reset = false, direction = 'next') {
+      if (isLoading) return;
+      isLoading = true;
+      
+      btnNext.disabled = true;
+      btnPrev.disabled = true;
+
+      if (reset) {
+        cursorStack = [];
+        currentCursor = null;
+        pageCount = 1;
+      }
+
+      try {
+        let url = `http://localhost:3000/api/products?limit=25`;
+        if (currentCursor) url += `&cursor=${encodeURIComponent(currentCursor)}`;
+        if (currentCategory) url += `&category=${encodeURIComponent(currentCategory)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        // Clear existing rows
+        tableBody.innerHTML = '';
+
+        data.data.forEach(product => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-gray-50 transition-colors';
+          
+          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm font-medium text-gray-900">${product.name}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                ${product.category}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+              $${product.price}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              ${new Date(product.updatedAt).toLocaleDateString()}
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
+
+        // Pagination Logic
+        if (direction === 'next') {
+          // If we moved next, and we had a previous cursor, push it to stack so we can go back
+          if (pageCount > 1) {
+            // Note: the previous page's cursor was whatever was used to fetch IT.
+            // Wait, cursorStack manages the cursors needed to fetch a specific page.
+            // Page 1 is null. Page 2 uses cursorStack[0].
+          }
+        }
+
+        // Update info text
+        pageInfo.innerHTML = `Page <span class="font-bold">${pageCount}</span>`;
+
+        // We push the currentCursor onto stack BEFORE updating it, so we can always return to where we were
+        // Actually, if we hit "Next", the current page was fetched with 'currentCursor'.
+        
+        btnPrev.disabled = cursorStack.length === 0;
+
+        // Next button state
+        if (data.nextCursor) {
+          btnNext.disabled = false;
+          // Store the next cursor but don't navigate yet
+          btnNext.dataset.nextCursor = data.nextCursor;
+        } else {
+          btnNext.disabled = true;
+          btnNext.dataset.nextCursor = '';
+        }
+
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+        alert('Failed to load products.');
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    categorySelect.addEventListener('change', (e) => {
+      currentCategory = e.target.value;
+      fetchProducts(true);
+    });
+
+    btnNext.addEventListener('click', () => {
+      cursorStack.push(currentCursor);
+      currentCursor = btnNext.dataset.nextCursor;
+      pageCount++;
+      fetchProducts(false, 'next');
+    });
+
+    btnPrev.addEventListener('click', () => {
+      currentCursor = cursorStack.pop();
+      pageCount--;
+      fetchProducts(false, 'prev');
+    });
+
+    // Initial load
+    fetchProducts(true);
+  </script>
+</body>
+</html>
