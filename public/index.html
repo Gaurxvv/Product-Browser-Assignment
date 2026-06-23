@@ -97,7 +97,7 @@
       }
 
       try {
-        let url = `http://localhost:3000/api/products?limit=25`;
+        let url = `/api/products?limit=25`;
         if (currentCursor) url += `&cursor=${encodeURIComponent(currentCursor)}`;
         if (currentCategory) url += `&category=${encodeURIComponent(currentCategory)}`;
 

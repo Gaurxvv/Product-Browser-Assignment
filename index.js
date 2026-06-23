@@ -4,11 +4,21 @@ import { db } from './db/db.js';
 import { products } from './db/schema.js';
 import { and, eq, desc, sql } from 'drizzle-orm';
 import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve the bonus UI
+app.use(express.static(path.join(__dirname, 'public'))); // Serve the bonus UI
+
+// Explicitly serve index.html for the root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Helper to encode/decode cursors (Base64)
 const encodeCursor = (updatedAt, id) => Buffer.from(`${updatedAt.getTime()}_${id}`).toString('base64');
